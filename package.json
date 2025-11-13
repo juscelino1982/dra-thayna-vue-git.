@@ -6,19 +6,19 @@
   "type": "module",
   "packageManager": "pnpm@10.22.0",
   "engines": {
-    "node": "20.x",
+    "node": ">=20.x",
     "pnpm": ">=9.0.0"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "vite",
     "dev:server": "tsx watch server/index.ts",
-    "build": "prisma generate && vite build",
+    "build": "prisma generate && vite build --mode production",
     "preview": "vite preview",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "vercel-build": "prisma generate && vite build"
+    "vercel-build": "prisma generate && vite build --mode production"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",

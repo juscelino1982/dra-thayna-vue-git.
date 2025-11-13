@@ -14,6 +14,19 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
+  build: {
+    rollupOptions: {
+      external: [
+        /^node:.*/,
+        'express',
+        'cors',
+        'formidable',
+        '@prisma/client',
+        '@anthropic-ai/sdk',
+        'openai'
+      ]
+    }
+  },
   server: {
     port: 3000,
     proxy: {
