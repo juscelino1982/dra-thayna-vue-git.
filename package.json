@@ -5,7 +5,7 @@
   "description": "Sistema Dra. Thayná Marra - Vue 3 + Vuetify",
   "type": "module",
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "scripts": {
     "dev": "vite",
