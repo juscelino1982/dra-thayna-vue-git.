@@ -4,8 +4,10 @@
   "version": "1.0.0",
   "description": "Sistema Dra. Thayná Marra - Vue 3 + Vuetify",
   "type": "module",
+  "packageManager": "pnpm@10.22.0",
   "engines": {
-    "node": "18.x"
+    "node": "18.x",
+    "pnpm": ">=9.0.0"
   },
   "scripts": {
     "dev": "vite",
