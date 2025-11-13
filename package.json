@@ -10,6 +10,7 @@
     "pnpm": ">=9.0.0"
   },
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "dev": "vite",
     "dev:server": "tsx watch server/index.ts",
     "build": "prisma generate && vite build",
