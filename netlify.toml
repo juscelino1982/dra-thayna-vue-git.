@@ -2,3 +2,7 @@
   command = "npm install -g npm@9 && npm install --include=dev && npm run build"
   publish = "dist"
 
+[build.environment]
+  NETLIFY_SKIP_INSTALL = "true"
+  NODE_VERSION = "22.12.0"
+
