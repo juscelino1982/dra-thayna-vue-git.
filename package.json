@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "description": "Sistema Dra. Thayná Marra - Vue 3 + Vuetify",
   "type": "module",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "dev": "vite",
     "dev:server": "tsx watch server/index.ts",
