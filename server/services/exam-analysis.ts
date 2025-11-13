@@ -268,6 +268,32 @@ Retorne um JSON estruturado com todas essas informações.
     const resumoClinico = result.resumo_clinico || {};
     const achadosPrincipais = result.achados_principais || {};
 
+    const principaisAchadosResumo: string[] = []
+    ensureArray(achadosPrincipais.valores_alterados).forEach((item: any) => {
+      const parametro = item.parametro || item.nome
+      const texto =
+        item.significado ||
+        item.observacao ||
+        item.status ||
+        item.classificacao ||
+        ''
+      if (parametro && texto) {
+        principaisAchadosResumo.push(`${parametro}: ${texto}`)
+      }
+    })
+
+    ensureArray(achadosPrincipais.valores_limites).forEach((item: any) => {
+      const parametro = item.parametro || item.nome
+      const texto =
+        item.observacao ||
+        item.significado ||
+        item.status ||
+        ''
+      if (parametro && texto) {
+        principaisAchadosResumo.push(`${parametro}: ${texto}`)
+      }
+    })
+
     const summaryCandidates = [
       result.summary,
       resumoClinico.resumo_geral,
@@ -311,6 +337,12 @@ Retorne um JSON estruturado com todas essas informações.
           extraParts.push(section.interpretacao.trim());
         }
       });
+
+      if (principaisAchadosResumo.length > 0) {
+        extraParts.push(
+          `Principais achados: ${principaisAchadosResumo.join('; ')}`
+        )
+      }
 
       if (extraParts.length > 0) {
         summary = extraParts.join(" ");
