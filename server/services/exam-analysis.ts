@@ -219,13 +219,48 @@ Retorne um JSON estruturado com todas essas informações.
       throw new Error('Resposta inesperada da API');
     }
 
-    // Parse do JSON
-    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Resposta não contém JSON válido');
+    const rawText = content.text.trim();
+
+    // Tentar extrair JSON da resposta (considerando blocos ```json``` ou primeiro objeto encontrado)
+    const fencedJson = rawText.match(/```json\s*([\s\S]*?)```/i);
+    const plainJson = rawText.match(/\{[\s\S]*\}/);
+
+    let parsed: any | null = null;
+
+    if (fencedJson && fencedJson[1]) {
+      try {
+        parsed = JSON.parse(fencedJson[1]);
+      } catch (error) {
+        console.warn('Falha ao parsear JSON dentro de bloco ```json```:', error);
+      }
     }
 
-    const result = JSON.parse(jsonMatch[0]);
+    if (!parsed && plainJson) {
+      try {
+        parsed = JSON.parse(plainJson[0]);
+      } catch (error) {
+        console.warn('Falha ao parsear JSON simples:', error);
+      }
+    }
+
+    // Se não conseguiu JSON, retorna fallback com texto bruto
+    if (!parsed) {
+      return {
+        category: EXAM_CATEGORIES.OTHER,
+        subCategory: undefined,
+        examType: 'Não identificado',
+        examDate: undefined,
+        extractedData: { rawText },
+        keyFindings: [],
+        abnormalValues: [],
+        summary: rawText,
+        recommendations: [],
+        confidence: 0.5,
+        aiModel: MODEL,
+      };
+    }
+
+    const result = parsed;
 
     console.log('✅ Exame analisado com sucesso');
 
@@ -233,16 +268,58 @@ Retorne um JSON estruturado com todas essas informações.
     const resumoClinico = result.resumo_clinico || {};
     const achadosPrincipais = result.achados_principais || {};
 
-    const summary =
-      result.summary ||
-      resumoClinico.resumo_geral ||
-      resumoClinico.interpretacao_geral ||
-      resumoClinico.conclusao ||
-      (Array.isArray(resumoClinico.interpretacao_achados)
-        ? resumoClinico.interpretacao_achados.join(' ')
-        : resumoClinico.interpretacao_achados) ||
-      resumoClinico.resumo ||
-      'Análise não disponível';
+    const summaryCandidates = [
+      result.summary,
+      resumoClinico.resumo_geral,
+      resumoClinico.status_geral,
+      resumoClinico.interpretacao_geral,
+      resumoClinico.conclusao,
+      resumoClinico.resumo,
+      Array.isArray(resumoClinico.interpretacao_achados)
+        ? resumoClinico.interpretacao_achados.join(" ")
+        : resumoClinico.interpretacao_achados,
+    ].filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0
+    );
+
+    let summary = summaryCandidates[0];
+
+    if (!summary) {
+      const seriesKeys = [
+        "serie_vermelha",
+        "serie_branca",
+        "serie_plaquetaria",
+        "serie_plaq",
+        "serie_vermelha_plaquetas",
+      ];
+      const extraParts: string[] = [];
+
+      if (
+        typeof resumoClinico.status_geral === "string" &&
+        resumoClinico.status_geral.trim()
+      ) {
+        extraParts.push(resumoClinico.status_geral.trim());
+      }
+
+      seriesKeys.forEach((key) => {
+        const section = resumoClinico[key];
+        if (
+          section?.interpretacao &&
+          typeof section.interpretacao === "string"
+        ) {
+          extraParts.push(section.interpretacao.trim());
+        }
+      });
+
+      if (extraParts.length > 0) {
+        summary = extraParts.join(" ");
+      }
+    }
+
+    if (!summary) {
+      summary = "Análise não disponível";
+    }
 
     const examType = result.examType || categorizacao.tipo_exame || 'Não identificado';
     const category =
