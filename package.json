@@ -5,16 +5,17 @@
   "description": "Sistema Dra. Thayná Marra - Vue 3 + Vuetify",
   "type": "module",
   "engines": {
-    "node": "20.x"
+    "node": "18.x"
   },
   "scripts": {
     "dev": "vite",
     "dev:server": "tsx watch server/index.ts",
-    "build": "vite build",
+    "build": "prisma generate && vite build",
     "preview": "vite preview",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "vercel-build": "prisma generate && vite build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",
