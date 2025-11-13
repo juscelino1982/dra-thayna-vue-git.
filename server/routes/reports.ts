@@ -5,7 +5,35 @@ import { generatePatientReport } from '../services/report-generation'
 const router = Router()
 const prisma = new PrismaClient()
 
-// GET /api/reports - Listar todos os relatórios
+/**
+ * @swagger
+ * tags:
+ *   name: Reports
+ *   description: Gerenciamento de relatórios médicos
+ */
+
+/**
+ * @swagger
+ * /api/reports:
+ *   get:
+ *     summary: Lista todos os relatórios
+ *     tags: [Reports]
+ *     responses:
+ *       200:
+ *         description: Lista de relatórios
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Report'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/', async (req, res) => {
   try {
     const reports = await prisma.report.findMany({
@@ -79,7 +107,56 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// POST /api/reports/generate - Gerar novo relatório com IA
+/**
+ * @swagger
+ * /api/reports/generate:
+ *   post:
+ *     summary: Gera um novo relatório usando IA (assíncrono)
+ *     tags: [Reports]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - patientId
+ *               - conductedBy
+ *             properties:
+ *               patientId:
+ *                 type: string
+ *                 description: ID do paciente
+ *               consultationId:
+ *                 type: string
+ *                 description: ID da consulta (opcional, será criada automaticamente se não informado)
+ *               conductedBy:
+ *                 type: string
+ *                 description: ID do usuário que está gerando o relatório
+ *     responses:
+ *       202:
+ *         description: Relatório sendo gerado em background
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/generate', async (req, res) => {
   try {
     const { patientId, consultationId, conductedBy } = req.body

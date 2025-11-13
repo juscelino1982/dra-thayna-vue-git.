@@ -8,6 +8,13 @@ import { analyzeExam } from '../services/exam-analysis'
 const router = Router()
 const prisma = new PrismaClient()
 
+/**
+ * @swagger
+ * tags:
+ *   name: Exams
+ *   description: Gerenciamento de exames laboratoriais
+ */
+
 // Diretório para salvar uploads
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads')
 
@@ -22,7 +29,56 @@ async function ensureUploadsDir() {
 
 ensureUploadsDir()
 
-// POST /api/exams/upload - Upload de exame
+/**
+ * @swagger
+ * /api/exams/upload:
+ *   post:
+ *     summary: Faz upload de um exame laboratorial
+ *     tags: [Exams]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - patientId
+ *               - file
+ *             properties:
+ *               patientId:
+ *                 type: string
+ *                 description: ID do paciente
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Arquivo do exame (PDF ou imagem)
+ *     responses:
+ *       201:
+ *         description: Upload realizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 exam:
+ *                   $ref: '#/components/schemas/Exam'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/upload', async (req, res) => {
   try {
     const form = formidable({
@@ -167,7 +223,39 @@ async function processExamAnalysis(examId: string, filePath: string, fileType: '
   }
 }
 
-// GET /api/exams/:id - Buscar exame específico
+/**
+ * @swagger
+ * /api/exams/{id}:
+ *   get:
+ *     summary: Busca um exame específico por ID
+ *     tags: [Exams]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do exame
+ *     responses:
+ *       200:
+ *         description: Dados do exame
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Exam'
+ *       404:
+ *         description: Exame não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params

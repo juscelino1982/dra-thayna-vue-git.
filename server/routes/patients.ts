@@ -4,7 +4,41 @@ import { PrismaClient } from '@prisma/client'
 const router = Router()
 const prisma = new PrismaClient()
 
-// GET /api/patients - Listar todos os pacientes
+/**
+ * @swagger
+ * tags:
+ *   name: Patients
+ *   description: Gerenciamento de pacientes
+ */
+
+/**
+ * @swagger
+ * /api/patients:
+ *   get:
+ *     summary: Lista todos os pacientes
+ *     tags: [Patients]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Buscar por nome, CPF ou telefone
+ *     responses:
+ *       200:
+ *         description: Lista de pacientes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Patient'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/', async (req, res) => {
   try {
     const patients = await prisma.patient.findMany({
@@ -27,7 +61,39 @@ router.get('/', async (req, res) => {
   }
 })
 
-// GET /api/patients/:id - Buscar um paciente específico
+/**
+ * @swagger
+ * /api/patients/{id}:
+ *   get:
+ *     summary: Busca um paciente específico por ID
+ *     tags: [Patients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do paciente
+ *     responses:
+ *       200:
+ *         description: Dados do paciente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Patient'
+ *       404:
+ *         description: Paciente não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
@@ -60,7 +126,38 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// POST /api/patients - Criar novo paciente
+/**
+ * @swagger
+ * /api/patients:
+ *   post:
+ *     summary: Cria um novo paciente
+ *     tags: [Patients]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PatientInput'
+ *     responses:
+ *       201:
+ *         description: Paciente criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Patient'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/', async (req, res) => {
   try {
     const patientData = req.body
@@ -76,7 +173,45 @@ router.post('/', async (req, res) => {
   }
 })
 
-// PUT /api/patients/:id - Atualizar paciente
+/**
+ * @swagger
+ * /api/patients/{id}:
+ *   put:
+ *     summary: Atualiza os dados de um paciente
+ *     tags: [Patients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do paciente
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PatientInput'
+ *     responses:
+ *       200:
+ *         description: Paciente atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Patient'
+ *       404:
+ *         description: Paciente não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params

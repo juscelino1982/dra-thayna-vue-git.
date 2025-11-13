@@ -13,7 +13,35 @@ const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'consultations')
 // Criar diretório se não existir
 fs.mkdir(UPLOADS_DIR, { recursive: true }).catch(console.error)
 
-// GET /api/consultations - Listar todas as consultas
+/**
+ * @swagger
+ * tags:
+ *   name: Consultations
+ *   description: Gerenciamento de consultas médicas
+ */
+
+/**
+ * @swagger
+ * /api/consultations:
+ *   get:
+ *     summary: Lista todas as consultas
+ *     tags: [Consultations]
+ *     responses:
+ *       200:
+ *         description: Lista de consultas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Consultation'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/', async (req, res) => {
   try {
     const consultations = await prisma.consultation.findMany({
@@ -69,7 +97,39 @@ router.get('/patient/:patientId', async (req, res) => {
   }
 })
 
-// GET /api/consultations/:id - Buscar consulta específica
+/**
+ * @swagger
+ * /api/consultations/{id}:
+ *   get:
+ *     summary: Busca uma consulta específica por ID
+ *     tags: [Consultations]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da consulta
+ *     responses:
+ *       200:
+ *         description: Dados da consulta
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Consultation'
+ *       404:
+ *         description: Consulta não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
@@ -97,7 +157,44 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// POST /api/consultations - Criar nova consulta
+/**
+ * @swagger
+ * /api/consultations:
+ *   post:
+ *     summary: Cria uma nova consulta
+ *     tags: [Consultations]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ConsultationInput'
+ *     responses:
+ *       201:
+ *         description: Consulta criada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Consultation'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Paciente ou usuário não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/', async (req, res) => {
   try {
     const { patientId, conductedBy, chiefComplaint, symptoms, status } = req.body
