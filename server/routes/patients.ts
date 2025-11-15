@@ -229,4 +229,84 @@ router.put('/:id', async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/patients/{id}/medical-info:
+ *   patch:
+ *     summary: Atualiza apenas as informações médicas de um paciente
+ *     tags: [Patients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do paciente
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               bloodType:
+ *                 type: string
+ *               allergies:
+ *                 type: string
+ *               currentMedications:
+ *                 type: string
+ *               medicalHistory:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Informações médicas atualizadas com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Patient'
+ *       404:
+ *         description: Paciente não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.patch('/:id/medical-info', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { bloodType, allergies, currentMedications, medicalHistory } = req.body
+
+    // Verifica se o paciente existe
+    const existingPatient = await prisma.patient.findUnique({
+      where: { id },
+    })
+
+    if (!existingPatient) {
+      return res.status(404).json({ error: 'Paciente não encontrado' })
+    }
+
+    // Atualiza apenas os campos médicos
+    const patient = await prisma.patient.update({
+      where: { id },
+      data: {
+        bloodType,
+        allergies,
+        currentMedications,
+        medicalHistory,
+      },
+    })
+
+    res.json(patient)
+  } catch (error: any) {
+    console.error('Erro ao atualizar informações médicas:', error)
+    res.status(500).json({ error: 'Erro ao atualizar informações médicas', message: error.message })
+  }
+})
+
 export default router

@@ -23,6 +23,14 @@ const processingError = ref<string | null>(null)
 const processingElapsed = ref(0)
 const processingManualLoading = ref(false)
 const reprocessingExamId = ref<string | null>(null)
+const medicalInfoDialog = ref(false)
+const medicalInfoForm = ref({
+  bloodType: '',
+  allergies: '',
+  currentMedications: '',
+  medicalHistory: '',
+})
+const savingMedicalInfo = ref(false)
 
 let processingPollInterval: ReturnType<typeof setInterval> | null = null
 let processingElapsedInterval: ReturnType<typeof setInterval> | null = null
@@ -346,6 +354,35 @@ function openProcessingDialog(exam: any) {
   }
 }
 
+function openMedicalInfoDialog() {
+  if (!patient.value) return
+
+  medicalInfoForm.value = {
+    bloodType: patient.value.bloodType || '',
+    allergies: patient.value.allergies || '',
+    currentMedications: patient.value.currentMedications || '',
+    medicalHistory: patient.value.medicalHistory || '',
+  }
+
+  medicalInfoDialog.value = true
+}
+
+async function saveMedicalInfo() {
+  if (!patient.value) return
+
+  savingMedicalInfo.value = true
+  try {
+    await store.updateMedicalInfo(patient.value.id, medicalInfoForm.value)
+    medicalInfoDialog.value = false
+    await store.fetchPatient(patient.value.id)
+  } catch (error: any) {
+    console.error('Erro ao atualizar informações médicas:', error)
+    alert('Erro ao atualizar informações médicas: ' + (error.message || 'Erro desconhecido'))
+  } finally {
+    savingMedicalInfo.value = false
+  }
+}
+
 onBeforeUnmount(() => {
   stopExamProcessingMonitor()
 })
@@ -486,12 +523,26 @@ function getExamActionLabel(status: string) {
           </v-card>
 
           <!-- Informações Médicas -->
-          <v-card v-if="patient.allergies || patient.currentMedications || patient.medicalHistory" elevation="2" class="mb-4">
-            <v-card-title class="bg-warning">
-              <v-icon icon="mdi-medical-bag" class="mr-2"></v-icon>
-              Informações Médicas
+          <v-card elevation="2" class="mb-4">
+            <v-card-title class="bg-warning d-flex align-center justify-space-between">
+              <div class="d-flex align-center">
+                <v-icon icon="mdi-medical-bag" class="mr-2"></v-icon>
+                Informações Médicas
+              </div>
+              <v-btn
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openMedicalInfoDialog"
+              >
+                <v-tooltip activator="parent">Editar</v-tooltip>
+              </v-btn>
             </v-card-title>
             <v-card-text class="pa-4">
+              <div v-if="patient.bloodType" class="mb-3">
+                <div class="text-caption text-grey-darken-1">Tipo Sanguíneo</div>
+                <div class="font-weight-medium">{{ patient.bloodType }}</div>
+              </div>
               <div v-if="patient.allergies" class="mb-3">
                 <div class="text-caption text-grey-darken-1">Alergias</div>
                 <div class="font-weight-medium">{{ patient.allergies }}</div>
@@ -503,6 +554,18 @@ function getExamActionLabel(status: string) {
               <div v-if="patient.medicalHistory">
                 <div class="text-caption text-grey-darken-1">Histórico Médico</div>
                 <div class="font-weight-medium">{{ patient.medicalHistory }}</div>
+              </div>
+              <div v-if="!patient.bloodType && !patient.allergies && !patient.currentMedications && !patient.medicalHistory" class="text-center py-6">
+                <v-icon icon="mdi-information-outline" size="48" color="grey"></v-icon>
+                <p class="text-grey-darken-1 mt-2 mb-0">Nenhuma informação médica cadastrada</p>
+                <v-btn
+                  color="primary"
+                  size="small"
+                  class="mt-3"
+                  @click="openMedicalInfoDialog"
+                >
+                  Adicionar Informações
+                </v-btn>
               </div>
             </v-card-text>
           </v-card>
@@ -985,6 +1048,69 @@ function getExamActionLabel(status: string) {
             :loading="deleting"
           >
             Excluir
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Dialog Editar Informações Médicas -->
+    <v-dialog v-model="medicalInfoDialog" max-width="700">
+      <v-card>
+        <v-card-title class="bg-warning">
+          <v-icon icon="mdi-medical-bag" class="mr-2"></v-icon>
+          Editar Informações Médicas
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <v-form>
+            <v-select
+              v-model="medicalInfoForm.bloodType"
+              label="Tipo Sanguíneo"
+              :items="['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']"
+              prepend-icon="mdi-water"
+              clearable
+              class="mb-4"
+            ></v-select>
+
+            <v-textarea
+              v-model="medicalInfoForm.allergies"
+              label="Alergias"
+              prepend-icon="mdi-alert-circle"
+              rows="2"
+              placeholder="Ex: Dipirona, Penicilina"
+              class="mb-4"
+            ></v-textarea>
+
+            <v-textarea
+              v-model="medicalInfoForm.currentMedications"
+              label="Medicações Atuais"
+              prepend-icon="mdi-pill"
+              rows="3"
+              placeholder="Ex: Omeprazol 20mg - 1x ao dia"
+              class="mb-4"
+            ></v-textarea>
+
+            <v-textarea
+              v-model="medicalInfoForm.medicalHistory"
+              label="Histórico Médico"
+              prepend-icon="mdi-file-document"
+              rows="4"
+              placeholder="Ex: Gastrite há 3 anos, Hipertensão controlada"
+            ></v-textarea>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions class="pa-6">
+          <v-spacer></v-spacer>
+          <v-btn @click="medicalInfoDialog = false" :disabled="savingMedicalInfo">
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="primary"
+            @click="saveMedicalInfo"
+            :loading="savingMedicalInfo"
+          >
+            Salvar
           </v-btn>
         </v-card-actions>
       </v-card>

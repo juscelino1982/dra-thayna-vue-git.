@@ -136,6 +136,41 @@ export const usePatientsStore = defineStore('patients', () => {
     }
   }
 
+  async function updateMedicalInfo(
+    patientId: string,
+    medicalInfo: {
+      bloodType?: string
+      allergies?: string
+      currentMedications?: string
+      medicalHistory?: string
+    }
+  ) {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await axios.patch(`/api/patients/${patientId}/medical-info`, medicalInfo)
+
+      // Atualiza o currentPatient se for o mesmo
+      if (currentPatient.value?.id === patientId) {
+        currentPatient.value = response.data
+      }
+
+      // Atualiza a lista de pacientes
+      const index = patients.value.findIndex(p => p.id === patientId)
+      if (index !== -1) {
+        patients.value[index] = response.data
+      }
+
+      return response.data
+    } catch (err: any) {
+      error.value = err.message
+      console.error('Erro ao atualizar informações médicas:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     patients,
     currentPatient,
@@ -148,5 +183,6 @@ export const usePatientsStore = defineStore('patients', () => {
     deleteExam,
     reprocessExam,
     fetchExamById,
+    updateMedicalInfo,
   }
 })
