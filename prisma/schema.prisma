@@ -1,0 +1,349 @@
+// Schema do Banco de Dados - Sistema Dra. Thayná Marra
+// Análise do Sangue Vivo
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ====================================
+// USUÁRIOS E AUTENTICAÇÃO
+// ====================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("ADMIN") // "ADMIN" ou "STAFF"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relacionamentos
+  consultations Consultation[]
+  reports       Report[]
+
+  @@map("users")
+}
+
+// ====================================
+// PACIENTES
+// ====================================
+
+model Patient {
+  id          String    @id @default(cuid())
+  fullName    String
+  email       String?
+  phone       String
+  birthDate   DateTime?
+  cpf         String?   @unique
+  address     String?
+  city        String?
+  state       String?
+
+  // Informações médicas
+  bloodType          String?
+  allergies          String?
+  currentMedications String?
+  medicalHistory     String?
+
+  // Metadata
+  firstConsultation DateTime @default(now())
+  lastConsultation  DateTime?
+  totalConsultations Int     @default(0)
+  notes             String?
+
+  // LGPD
+  consentGiven   Boolean  @default(false)
+  consentDate    DateTime?
+  consentVersion String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  consultations Consultation[]
+  reports       Report[]
+  exams         Exam[]
+
+  @@map("patients")
+}
+
+// ====================================
+// CONSULTAS
+// ====================================
+
+model Consultation {
+  id          String             @id @default(cuid())
+  patientId   String
+  conductedBy String
+  date        DateTime           @default(now())
+
+  // Arquivos
+  audioFileUrl      String?
+  audioFileDuration Int?             // segundos
+  audioFileSize     Int?             // bytes
+
+  // Transcrição
+  transcription         String?
+  transcriptionStatus   String @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  transcriptionError    String?
+
+  // Conteúdo da consulta
+  chiefComplaint     String? // Queixa principal
+  symptoms           String?
+  medicalHistory     String?
+  currentMedications String?
+
+  // Status
+  status String @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [conductedBy], references: [id])
+  report  Report?
+  audioRecordings ConsultationAudio[]
+
+  @@map("consultations")
+}
+
+model ConsultationAudio {
+  id              String   @id @default(cuid())
+  consultationId  String
+  fileUrl         String
+  fileName        String
+  fileSize        Int
+  duration        Int?
+  transcription   String?
+  transcriptionStatus String @default("PENDING")
+  transcriptionError  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@map("consultation_audios")
+}
+
+// ====================================
+// ANÁLISES E RELATÓRIOS
+// ====================================
+
+model Report {
+  id             String       @id @default(cuid())
+  consultationId String       @unique
+  patientId      String
+  generatedBy    String
+
+  // Análise Microscópica - Campo Claro
+  redBloodCells   String? // Hemácias
+  whiteBloodCells String? // Leucócitos
+  platelets       String? // Plaquetas
+  plasma          String? // Plasma
+
+  // Análise Microscópica - Campo Escuro
+  microbialActivity String? // Atividade microbiana
+  crystallizations  String? // Cristalizações
+  cellularDebris    String? // Debris celulares
+
+  // Achados e Análises
+  mainFindings        String? // JSON: array de achados principais
+  clinicalCorrelation String? // Correlação clínica
+
+  // Orientações Terapêuticas
+  supplementation      String? // Suplementação
+  phytotherapy         String? // Fitoterapia
+  nutritionalGuidance  String? // Orientações nutricionais
+  otherRecommendations String? // Outras recomendações
+
+  // Acompanhamento
+  followUpDate          DateTime?
+  complementaryExams    String?
+
+  // Conteúdo Completo (gerado pela IA)
+  fullReportContent String? // Markdown ou HTML
+
+  // PDF
+  pdfUrl     String?
+  pdfGeneratedAt DateTime?
+
+  // Status
+  status      String @default("DRAFT") // DRAFT, PENDING_REVIEW, APPROVED, SENT
+  aiGenerated Boolean      @default(false)
+  reviewedAt  DateTime?
+  sentToPatientAt DateTime?
+
+  // Metadata
+  aiModel   String?   // Ex: "claude-sonnet-4.5"
+  aiPromptVersion String? // Versão do prompt usado
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  patient      Patient      @relation(fields: [patientId], references: [id])
+  user         User         @relation(fields: [generatedBy], references: [id])
+
+  @@map("reports")
+}
+
+// ====================================
+// CHATBOT E MENSAGENS
+// ====================================
+
+model ChatConversation {
+  id        String   @id @default(cuid())
+  patientId String?
+  phone     String
+  platform  String   @default("whatsapp") // whatsapp, web, instagram
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  messages ChatMessage[]
+
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+
+  sender   String // "patient" ou "bot" ou "human"
+  content  String
+  metadata String?  // JSON serializado: Dados extras (botões, imagens, etc)
+
+  createdAt DateTime @default(now())
+
+  // Relacionamentos
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+// ====================================
+// TEMPLATES E CONFIGURAÇÕES
+// ====================================
+
+model ReportTemplate {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  content     String  // Markdown template
+  isDefault   Boolean @default(false)
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("report_templates")
+}
+
+model SystemConfig {
+  key   String @id
+  value String
+
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+// ====================================
+// LOGS E AUDITORIA
+// ====================================
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // "CREATE_PATIENT", "SEND_REPORT", etc
+  entity    String   // "Patient", "Report", etc
+  entityId  String?
+  metadata  String?  // JSON serializado
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// ====================================
+// EXAMES LABORATORIAIS
+// ====================================
+
+model Exam {
+  id        String   @id @default(cuid())
+  patientId String
+
+  // Informações do Arquivo
+  fileName     String
+  fileUrl      String
+  fileType     String  // "pdf", "image", "document"
+  fileSize     Int     // bytes
+  uploadedBy   String?
+
+  // Categorização Automática (IA)
+  category     String?  // "Hemograma", "Lipidograma", "Hormônios", "Urina", "Fezes", "Imagem", "Outros"
+  subCategory  String?  // Subcategoria específica
+  examType     String?  // Tipo específico do exame
+  examDate     DateTime? // Data do exame (extraída do documento)
+
+  // Extração de Dados pela IA
+  extractedData    String?  // JSON com dados extraídos
+  aiSummary        String?  // Resumo gerado pela IA
+  aiModel          String?  // Modelo usado (ex: "claude-sonnet-4.5")
+
+  // Valores Principais (alguns exemplos comuns)
+  keyFindings      String?  // JSON: achados principais
+  referenceValues  String?  // JSON: valores de referência
+  abnormalValues   String?  // JSON: valores alterados
+
+  // Status de Processamento
+  processingStatus String @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingError  String?
+
+  // Notas e Observações
+  notes        String?  // Notas da Dra. Thayná
+  tags         String?  // Tags para busca (JSON array)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("exams")
+}
+
+// ====================================
+// CONTROLE DE API USAGE
+// ====================================
+
+model ApiUsage {
+  id        String   @id @default(cuid())
+  service   String   // "anthropic", "openai"
+  endpoint  String   // "transcription", "chat"
+
+  tokensUsed   Int?
+  costUsd      Float?
+  durationMs   Int?
+
+  success   Boolean  @default(true)
+  errorMessage String?
+
+  metadata  String?  // JSON serializado
+
+  createdAt DateTime @default(now())
+
+  @@map("api_usage")
+}
