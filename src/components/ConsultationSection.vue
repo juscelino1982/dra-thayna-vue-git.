@@ -1019,16 +1019,28 @@ function dismissRecordingError() {
 /* Estilos para cards de áudio */
 .audio-card {
   position: relative;
+  width: 100%;
+  max-width: 100%;
 }
 
 .audio-card .v-card {
   border-radius: 12px;
   transition: all 0.3s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .audio-card .v-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Garantir que flex items não ultrapassem */
+.audio-card .d-flex {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Texto da transcrição */
@@ -1041,13 +1053,16 @@ function dismissRecordingError() {
   border-radius: 8px;
   white-space: normal;
   word-wrap: break-word;
-  overflow-wrap: break-word;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+  hyphens: auto;
   font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   max-height: 400px;
   overflow-y: auto;
-  text-align: left;
+  overflow-x: hidden;
+  text-align: justify;
   width: 100%;
+  display: block;
+  box-sizing: border-box;
 }
 
 .transcription-text::-webkit-scrollbar {
@@ -1071,25 +1086,59 @@ function dismissRecordingError() {
 /* Ajustes para mobile */
 @media (max-width: 768px) {
   .transcription-text {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     line-height: 1.6;
     padding: 12px;
     max-height: 300px;
+    text-align: left;
   }
 
   .audio-card .v-card {
     padding: 12px !important;
+    width: 100%;
+    max-width: 100%;
   }
 
   .audio-card .v-avatar {
     width: 32px !important;
     height: 32px !important;
+    min-width: 32px !important;
+    flex-shrink: 0;
+  }
+
+  .audio-card .flex-grow-1 {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .audio-card .text-caption {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 480px) {
+  .transcription-text {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    padding: 10px;
+  }
+
+  .audio-card .text-subtitle-2 {
+    font-size: 0.875rem !important;
+  }
+
+  .audio-card .text-caption {
+    font-size: 0.75rem !important;
   }
 }
 
 /* Garantir que o texto flua corretamente */
 .transcription-text p {
   margin-bottom: 0.5em;
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 
 .transcription-text p:last-child {
