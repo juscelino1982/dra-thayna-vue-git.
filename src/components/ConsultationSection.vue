@@ -234,26 +234,6 @@ function getStatusText(status: string) {
   return texts[status] || status
 }
 
-function getTranscriptionStatusColor(status: string) {
-  const colors: Record<string, string> = {
-    PENDING: 'grey',
-    PROCESSING: 'orange',
-    COMPLETED: 'green',
-    FAILED: 'red',
-  }
-  return colors[status] || 'grey'
-}
-
-function getTranscriptionStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    PENDING: 'Pendente',
-    PROCESSING: 'Transcrevendo',
-    COMPLETED: 'Concluído',
-    FAILED: 'Erro',
-  }
-  return labels[status] || status
-}
-
 function formatFileSize(size: number | null | undefined) {
   if (!size || size <= 0) return 'tamanho desconhecido'
   if (size < 1024) return `${size} B`
@@ -609,75 +589,135 @@ function dismissRecordingError() {
             v-if="consultation.audioRecordings && consultation.audioRecordings.length > 0"
             class="w-100 mt-3"
           >
-            <div class="d-flex align-center mb-2">
-              <v-icon icon="mdi-microphone" class="mr-2" color="primary"></v-icon>
-              <span class="text-subtitle-2 font-weight-medium">Áudios anexados</span>
-            </div>
-
-            <v-expansion-panels variant="accordion">
-              <v-expansion-panel
-                v-for="audio in consultation.audioRecordings"
-                :key="audio.id"
+            <div
+              v-for="audio in consultation.audioRecordings"
+              :key="audio.id"
+              class="audio-card mb-3"
+            >
+              <!-- Transcrição Concluída -->
+              <v-card
+                v-if="audio.transcriptionStatus === 'COMPLETED' && audio.transcription"
+                variant="tonal"
+                color="success"
+                class="pa-4"
               >
-                <v-expansion-panel-title>
-                  <div class="d-flex align-center justify-space-between w-100">
-                    <div>
-                      <span class="font-weight-medium">{{ audio.fileName }}</span>
-                      <span class="text-caption text-grey-darken-1 ml-2">
-                        {{ formatFileSize(audio.fileSize) }}
-                      </span>
-                      <span
-                        v-if="formatDuration(audio.duration)"
-                        class="text-caption text-grey-darken-1 ml-2"
-                      >
-                        {{ formatDuration(audio.duration) }}
-                      </span>
-                    </div>
-                    <div class="d-flex align-center">
-                      <v-chip
-                        :color="getTranscriptionStatusColor(audio.transcriptionStatus)"
-                        size="x-small"
-                        class="mr-2"
-                      >
-                        {{ getTranscriptionStatusLabel(audio.transcriptionStatus) }}
-                      </v-chip>
-                      <v-btn
-                        icon
-                        size="x-small"
-                        variant="text"
-                        color="error"
-                        @click.stop="confirmDeleteAudio(consultation.id, audio.id, audio.fileName)"
-                      >
-                        <v-icon icon="mdi-delete" size="small"></v-icon>
-                        <v-tooltip activator="parent">Excluir áudio</v-tooltip>
-                      </v-btn>
+                <div class="d-flex align-center mb-3">
+                  <v-avatar size="36" color="success" class="mr-3">
+                    <v-icon icon="mdi-text-to-speech" color="white"></v-icon>
+                  </v-avatar>
+                  <div class="flex-grow-1">
+                    <div class="text-subtitle-2 font-weight-bold">Transcrição de Áudio</div>
+                    <div class="text-caption text-grey-darken-2">
+                      {{ formatDuration(audio.duration) || 'Duração desconhecida' }}
+                      <span v-if="audio.fileName" class="ml-2">• {{ audio.fileName }}</span>
                     </div>
                   </div>
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  <div v-if="audio.transcription">
-                    {{ audio.transcription }}
-                  </div>
-                  <v-alert v-else-if="audio.transcriptionStatus === 'PROCESSING'" type="info" variant="tonal">
-                    <div class="d-flex align-center justify-space-between">
-                      <div>
-                        <div class="font-weight-medium mb-1">Transcrição em andamento...</div>
-                        <div class="text-caption">
-                          Tempo decorrido: {{ getTranscriptionElapsed(audio.id) }}
-                        </div>
-                      </div>
-                      <v-progress-circular indeterminate size="24" width="3" color="info"></v-progress-circular>
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="text"
+                    color="error"
+                    @click="confirmDeleteAudio(consultation.id, audio.id, audio.fileName)"
+                  >
+                    <v-icon icon="mdi-delete"></v-icon>
+                    <v-tooltip activator="parent">Excluir transcrição</v-tooltip>
+                  </v-btn>
+                </div>
+                <v-divider class="mb-3"></v-divider>
+                <div class="transcription-text">
+                  {{ audio.transcription }}
+                </div>
+              </v-card>
+
+              <!-- Transcrição em Andamento -->
+              <v-card
+                v-else-if="audio.transcriptionStatus === 'PROCESSING'"
+                variant="tonal"
+                color="info"
+                class="pa-4"
+              >
+                <div class="d-flex align-center">
+                  <v-progress-circular indeterminate size="36" width="4" color="info" class="mr-3"></v-progress-circular>
+                  <div class="flex-grow-1">
+                    <div class="text-subtitle-2 font-weight-bold">Transcrevendo áudio...</div>
+                    <div class="text-caption">
+                      Tempo decorrido: {{ getTranscriptionElapsed(audio.id) }}
+                      <span class="ml-2">• {{ formatFileSize(audio.fileSize) }}</span>
                     </div>
-                  </v-alert>
-                  <v-alert v-else-if="audio.transcriptionStatus === 'FAILED'" type="error" variant="tonal">
-                    {{ audio.transcriptionError || 'Falha ao transcrever este áudio.' }}
-                  </v-alert>
-                  <div v-else class="text-body-2 text-grey-darken-1">
-                    Transcrição pendente.
                   </div>
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="text"
+                    color="error"
+                    @click="confirmDeleteAudio(consultation.id, audio.id, audio.fileName)"
+                  >
+                    <v-icon icon="mdi-delete"></v-icon>
+                    <v-tooltip activator="parent">Cancelar e excluir</v-tooltip>
+                  </v-btn>
+                </div>
+              </v-card>
+
+              <!-- Transcrição com Erro -->
+              <v-card
+                v-else-if="audio.transcriptionStatus === 'FAILED'"
+                variant="tonal"
+                color="error"
+                class="pa-4"
+              >
+                <div class="d-flex align-center">
+                  <v-avatar size="36" color="error" class="mr-3">
+                    <v-icon icon="mdi-alert-circle" color="white"></v-icon>
+                  </v-avatar>
+                  <div class="flex-grow-1">
+                    <div class="text-subtitle-2 font-weight-bold">Erro na transcrição</div>
+                    <div class="text-caption">
+                      {{ audio.transcriptionError || 'Falha ao transcrever este áudio.' }}
+                    </div>
+                  </div>
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="text"
+                    color="error"
+                    @click="confirmDeleteAudio(consultation.id, audio.id, audio.fileName)"
+                  >
+                    <v-icon icon="mdi-delete"></v-icon>
+                    <v-tooltip activator="parent">Excluir</v-tooltip>
+                  </v-btn>
+                </div>
+              </v-card>
+
+              <!-- Transcrição Pendente -->
+              <v-card
+                v-else
+                variant="tonal"
+                color="grey"
+                class="pa-4"
+              >
+                <div class="d-flex align-center">
+                  <v-avatar size="36" color="grey" class="mr-3">
+                    <v-icon icon="mdi-clock-outline" color="white"></v-icon>
+                  </v-avatar>
+                  <div class="flex-grow-1">
+                    <div class="text-subtitle-2 font-weight-bold">Aguardando transcrição</div>
+                    <div class="text-caption">
+                      {{ audio.fileName }} • {{ formatFileSize(audio.fileSize) }}
+                    </div>
+                  </div>
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="text"
+                    color="error"
+                    @click="confirmDeleteAudio(consultation.id, audio.id, audio.fileName)"
+                  >
+                    <v-icon icon="mdi-delete"></v-icon>
+                    <v-tooltip activator="parent">Excluir</v-tooltip>
+                  </v-btn>
+                </div>
+              </v-card>
+            </div>
           </div>
 
           <v-list-item-subtitle v-if="consultation.transcription" class="mb-2">
@@ -974,5 +1014,53 @@ function dismissRecordingError() {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+/* Estilos para cards de áudio */
+.audio-card {
+  position: relative;
+}
+
+.audio-card .v-card {
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.audio-card .v-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Texto da transcrição */
+.transcription-text {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: rgba(0, 0, 0, 0.87);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 16px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.transcription-text::-webkit-scrollbar {
+  width: 8px;
+}
+
+.transcription-text::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.transcription-text::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.transcription-text::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 </style>
