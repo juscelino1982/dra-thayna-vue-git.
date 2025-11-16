@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { prisma } from '../lib/prisma'
-import { generatePatientReport } from '../services/report-generation'
+import { prisma } from '../lib/prisma.js'
+import { generatePatientReport } from '../services/report-generation.js'
 
 const router = Router()
 

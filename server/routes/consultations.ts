@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { prisma } from '../lib/prisma'
+import { prisma } from '../lib/prisma.js'
 import formidable from 'formidable'
 import fs from 'fs/promises'
 import path from 'path'
-import { transcribeAudio } from '../services/audio-transcription'
+import { transcribeAudio } from '../services/audio-transcription.js'
 
 const router = Router()
 

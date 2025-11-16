@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { prisma } from '../lib/prisma'
+import { prisma } from '../lib/prisma.js'
 import formidable from 'formidable'
 import fs from 'fs/promises'
 import path from 'path'
-import { analyzeExam } from '../services/exam-analysis'
+import { analyzeExam } from '../services/exam-analysis.js'
 
 const router = Router()
 

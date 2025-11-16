@@ -3,11 +3,11 @@ import express from 'express'
 import cors from 'cors'
 
 // Import routes
-import patientsRouter from '../server/routes/patients'
-import consultationsRouter from '../server/routes/consultations'
-import reportsRouter from '../server/routes/reports'
-import examsRouter from '../server/routes/exams'
-import dashboardRouter from '../server/routes/dashboard'
+import patientsRouter from '../server/routes/patients.js'
+import consultationsRouter from '../server/routes/consultations.js'
+import reportsRouter from '../server/routes/reports.js'
+import examsRouter from '../server/routes/exams.js'
+import dashboardRouter from '../server/routes/dashboard.js'
 
 const app = express()
 
