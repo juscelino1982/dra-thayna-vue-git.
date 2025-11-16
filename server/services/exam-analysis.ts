@@ -42,6 +42,19 @@ function resolveMediaType(filePath: string, fileType: 'pdf' | 'image'): string {
 }
 
 function logRawAnthropicResponse(examId: string, response: any) {
+  // Usar /tmp em ambientes serverless (Vercel)
+  const isVercel = process.env.VERCEL === '1';
+
+  if (isVercel) {
+    // Em produção Vercel, apenas fazer log no console
+    console.log(`📝 Resposta da Anthropic para exame ${examId}:`, {
+      model: response.model,
+      usage: response.usage,
+      role: response.role,
+    });
+    return;
+  }
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const dir = path.join(process.cwd(), 'logs', 'anthropic');
   const filePath = path.join(dir, `${examId}-${timestamp}.json`);
