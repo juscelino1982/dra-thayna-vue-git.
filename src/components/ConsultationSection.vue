@@ -1039,11 +1039,15 @@ function dismissRecordingError() {
   background: rgba(255, 255, 255, 0.7);
   padding: 16px;
   border-radius: 8px;
-  white-space: pre-wrap;
+  white-space: normal;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
   font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   max-height: 400px;
   overflow-y: auto;
+  text-align: left;
+  width: 100%;
 }
 
 .transcription-text::-webkit-scrollbar {
@@ -1062,5 +1066,33 @@ function dismissRecordingError() {
 
 .transcription-text::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
+}
+
+/* Ajustes para mobile */
+@media (max-width: 768px) {
+  .transcription-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    padding: 12px;
+    max-height: 300px;
+  }
+
+  .audio-card .v-card {
+    padding: 12px !important;
+  }
+
+  .audio-card .v-avatar {
+    width: 32px !important;
+    height: 32px !important;
+  }
+}
+
+/* Garantir que o texto flua corretamente */
+.transcription-text p {
+  margin-bottom: 0.5em;
+}
+
+.transcription-text p:last-child {
+  margin-bottom: 0;
 }
 </style>
