@@ -15,18 +15,18 @@ const router = Router()
  */
 
 // Diretório para salvar uploads
+// NOTA: Na Vercel, usar /tmp ou Vercel Blob Storage para uploads
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads')
 
-// Criar diretório de uploads se não existir
-async function ensureUploadsDir() {
-  try {
-    await fs.access(UPLOADS_DIR)
-  } catch {
-    await fs.mkdir(UPLOADS_DIR, { recursive: true })
-  }
-}
-
-ensureUploadsDir()
+// DESABILITADO: Não criar diretórios em ambientes serverless (Vercel)
+// async function ensureUploadsDir() {
+//   try {
+//     await fs.access(UPLOADS_DIR)
+//   } catch {
+//     await fs.mkdir(UPLOADS_DIR, { recursive: true })
+//   }
+// }
+// ensureUploadsDir()
 
 /**
  * @swagger

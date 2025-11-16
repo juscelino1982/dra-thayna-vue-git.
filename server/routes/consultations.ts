@@ -9,8 +9,8 @@ const router = Router()
 
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'consultations')
 
-// Criar diretório se não existir
-fs.mkdir(UPLOADS_DIR, { recursive: true }).catch(console.error)
+// DESABILITADO: Não criar diretórios em ambientes serverless (Vercel)
+// fs.mkdir(UPLOADS_DIR, { recursive: true }).catch(console.error)
 
 /**
  * @swagger
