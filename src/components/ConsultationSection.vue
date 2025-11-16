@@ -23,6 +23,16 @@ const recordingError = ref<string | null>(null)
 const recordedBlob = ref<Blob | null>(null)
 const recordingPreviewUrl = ref<string | null>(null)
 
+// Modal de transcrição
+const showTranscriptionModal = ref(false)
+const currentTranscription = ref<{
+  text: string
+  duration: number | null
+  fileName: string
+  consultationId: string
+  audioId: string
+} | null>(null)
+
 // Tempo de transcrição
 const transcriptionTimers = ref<Record<string, { startTime: number; elapsed: number }>>({})
 let transcriptionTimerInterval: ReturnType<typeof setInterval> | null = null
@@ -494,6 +504,22 @@ onBeforeUnmount(() => {
 function dismissRecordingError() {
   recordingError.value = null
 }
+
+function openTranscriptionModal(audio: any, consultationId: string) {
+  currentTranscription.value = {
+    text: audio.transcription,
+    duration: audio.duration,
+    fileName: audio.fileName,
+    consultationId,
+    audioId: audio.id
+  }
+  showTranscriptionModal.value = true
+}
+
+function closeTranscriptionModal() {
+  showTranscriptionModal.value = false
+  currentTranscription.value = null
+}
 </script>
 
 <template>
@@ -595,45 +621,41 @@ function dismissRecordingError() {
               class="audio-card mb-3"
             >
               <!-- Transcrição Concluída -->
-              <v-expansion-panels
+              <v-card
                 v-if="audio.transcriptionStatus === 'COMPLETED' && audio.transcription"
-                variant="accordion"
+                class="transcription-card"
+                @click="openTranscriptionModal(audio, consultation.id)"
               >
-                <v-expansion-panel>
-                  <v-expansion-panel-title class="transcription-header">
-                    <div class="d-flex align-center w-100">
-                      <v-chip
-                        color="success"
-                        variant="flat"
-                        size="small"
-                        prepend-icon="mdi-check-circle"
-                        class="mr-3"
-                      >
-                        Transcrição
-                      </v-chip>
-                      <div class="flex-grow-1">
-                        <div class="text-body-2">
-                          {{ formatDuration(audio.duration) || 'Áudio transcrito' }}
-                        </div>
-                      </div>
-                      <v-btn
-                        icon
-                        size="x-small"
-                        variant="text"
-                        color="error"
-                        @click.stop="confirmDeleteAudio(consultation.id, audio.id, audio.fileName)"
-                      >
-                        <v-icon icon="mdi-delete" size="small"></v-icon>
-                      </v-btn>
+                <div class="d-flex align-center pa-3">
+                  <v-chip
+                    color="success"
+                    variant="flat"
+                    size="small"
+                    prepend-icon="mdi-check-circle"
+                    class="mr-3"
+                  >
+                    Transcrição
+                  </v-chip>
+                  <div class="flex-grow-1">
+                    <div class="text-body-2 font-weight-medium">
+                      {{ formatDuration(audio.duration) || 'Áudio transcrito' }}
                     </div>
-                  </v-expansion-panel-title>
-                  <v-expansion-panel-text>
-                    <div class="transcription-content">
-                      {{ audio.transcription }}
+                    <div class="text-caption text-grey">
+                      Clique para ler
                     </div>
-                  </v-expansion-panel-text>
-                </v-expansion-panel>
-              </v-expansion-panels>
+                  </div>
+                  <v-icon icon="mdi-chevron-right" class="mr-2" color="grey"></v-icon>
+                  <v-btn
+                    icon
+                    size="x-small"
+                    variant="text"
+                    color="error"
+                    @click.stop="confirmDeleteAudio(consultation.id, audio.id, audio.fileName)"
+                  >
+                    <v-icon icon="mdi-delete" size="small"></v-icon>
+                  </v-btn>
+                </div>
+              </v-card>
 
               <!-- Transcrição em Andamento -->
               <v-card
@@ -982,6 +1004,67 @@ function dismissRecordingError() {
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Modal de Transcrição -->
+    <v-dialog
+      v-model="showTranscriptionModal"
+      max-width="900"
+      scrollable
+    >
+      <v-card v-if="currentTranscription">
+        <v-card-title class="d-flex align-center bg-success text-white pa-4">
+          <v-icon icon="mdi-text-to-speech" class="mr-3"></v-icon>
+          <div class="flex-grow-1">
+            <div class="text-h6">Transcrição de Áudio</div>
+            <div class="text-caption">
+              {{ formatDuration(currentTranscription.duration) }}
+              <span v-if="currentTranscription.fileName" class="ml-2">
+                • {{ currentTranscription.fileName }}
+              </span>
+            </div>
+          </div>
+          <v-btn
+            icon
+            variant="text"
+            @click="closeTranscriptionModal"
+            color="white"
+          >
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-6 transcription-modal-content">
+          {{ currentTranscription.text }}
+        </v-card-text>
+
+        <v-card-actions class="pa-4 bg-grey-lighten-4">
+          <v-spacer></v-spacer>
+          <v-btn
+            variant="text"
+            color="error"
+            prepend-icon="mdi-delete"
+            @click="() => {
+              if (currentTranscription) {
+                confirmDeleteAudio(
+                  currentTranscription.consultationId,
+                  currentTranscription.audioId,
+                  currentTranscription.fileName
+                )
+                closeTranscriptionModal()
+              }
+            }"
+          >
+            Excluir Transcrição
+          </v-btn>
+          <v-btn
+            color="primary"
+            @click="closeTranscriptionModal"
+          >
+            Fechar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -1049,56 +1132,45 @@ function dismissRecordingError() {
   box-sizing: border-box;
 }
 
-/* Header da transcrição */
-.transcription-header {
-  background: linear-gradient(135deg, #f5f5f5 0%, #e8f5e9 100%);
+/* Card de transcrição clicável */
+.transcription-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
   border-left: 4px solid #4caf50;
+  background: linear-gradient(135deg, #ffffff 0%, #f1f8e9 100%);
 }
 
-/* Conteúdo da transcrição */
-.transcription-content {
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: #2c3e50;
-  padding: 20px 16px;
+.transcription-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+/* Conteúdo do modal de transcrição */
+.transcription-modal-content {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #1a1a1a;
   white-space: pre-line;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  max-height: 400px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: #fafafa;
-  border-radius: 0 0 8px 8px;
-}
-
-.transcription-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.transcription-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.transcription-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 3px;
-}
-
-.transcription-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  min-height: 200px;
+  max-height: 60vh;
 }
 
 /* Ajustes para mobile */
 @media (max-width: 768px) {
-  .transcription-content {
-    font-size: 0.875rem;
-    line-height: 1.55;
-    padding: 16px 12px;
-    max-height: 280px;
+  .transcription-modal-content {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    max-height: 50vh;
   }
 
-  .transcription-header .v-chip {
+  .transcription-card .text-body-2 {
+    font-size: 0.875rem;
+  }
+
+  .transcription-card .text-caption {
     font-size: 0.75rem;
   }
 
@@ -1121,15 +1193,9 @@ function dismissRecordingError() {
 
 /* Ajustes para telas muito pequenas */
 @media (max-width: 480px) {
-  .transcription-content {
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    padding: 12px 10px;
-    max-height: 240px;
-  }
-
-  .transcription-header .text-body-2 {
-    font-size: 0.75rem !important;
+  .transcription-modal-content {
+    font-size: 0.875rem;
+    line-height: 1.6;
   }
 }
 </style>
