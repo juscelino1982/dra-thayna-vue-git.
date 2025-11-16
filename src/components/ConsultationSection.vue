@@ -595,39 +595,45 @@ function dismissRecordingError() {
               class="audio-card mb-3"
             >
               <!-- Transcrição Concluída -->
-              <v-card
+              <v-expansion-panels
                 v-if="audio.transcriptionStatus === 'COMPLETED' && audio.transcription"
-                variant="tonal"
-                color="success"
-                class="pa-4"
+                variant="accordion"
               >
-                <div class="d-flex align-center mb-3">
-                  <v-avatar size="36" color="success" class="mr-3">
-                    <v-icon icon="mdi-text-to-speech" color="white"></v-icon>
-                  </v-avatar>
-                  <div class="flex-grow-1">
-                    <div class="text-subtitle-2 font-weight-bold">Transcrição de Áudio</div>
-                    <div class="text-caption text-grey-darken-2">
-                      {{ formatDuration(audio.duration) || 'Duração desconhecida' }}
-                      <span v-if="audio.fileName" class="ml-2">• {{ audio.fileName }}</span>
+                <v-expansion-panel>
+                  <v-expansion-panel-title class="transcription-header">
+                    <div class="d-flex align-center w-100">
+                      <v-chip
+                        color="success"
+                        variant="flat"
+                        size="small"
+                        prepend-icon="mdi-check-circle"
+                        class="mr-3"
+                      >
+                        Transcrição
+                      </v-chip>
+                      <div class="flex-grow-1">
+                        <div class="text-body-2">
+                          {{ formatDuration(audio.duration) || 'Áudio transcrito' }}
+                        </div>
+                      </div>
+                      <v-btn
+                        icon
+                        size="x-small"
+                        variant="text"
+                        color="error"
+                        @click.stop="confirmDeleteAudio(consultation.id, audio.id, audio.fileName)"
+                      >
+                        <v-icon icon="mdi-delete" size="small"></v-icon>
+                      </v-btn>
                     </div>
-                  </div>
-                  <v-btn
-                    icon
-                    size="small"
-                    variant="text"
-                    color="error"
-                    @click="confirmDeleteAudio(consultation.id, audio.id, audio.fileName)"
-                  >
-                    <v-icon icon="mdi-delete"></v-icon>
-                    <v-tooltip activator="parent">Excluir transcrição</v-tooltip>
-                  </v-btn>
-                </div>
-                <v-divider class="mb-3"></v-divider>
-                <div class="transcription-text">
-                  {{ audio.transcription }}
-                </div>
-              </v-card>
+                  </v-expansion-panel-title>
+                  <v-expansion-panel-text>
+                    <div class="transcription-content">
+                      {{ audio.transcription }}
+                    </div>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
 
               <!-- Transcrição em Andamento -->
               <v-card
@@ -1043,60 +1049,61 @@ function dismissRecordingError() {
   box-sizing: border-box;
 }
 
-/* Texto da transcrição */
-.transcription-text {
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: rgba(0, 0, 0, 0.87);
-  background: rgba(255, 255, 255, 0.7);
-  padding: 16px;
-  border-radius: 8px;
-  white-space: normal;
+/* Header da transcrição */
+.transcription-header {
+  background: linear-gradient(135deg, #f5f5f5 0%, #e8f5e9 100%);
+  border-left: 4px solid #4caf50;
+}
+
+/* Conteúdo da transcrição */
+.transcription-content {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #2c3e50;
+  padding: 20px 16px;
+  white-space: pre-line;
   word-wrap: break-word;
-  overflow-wrap: anywhere;
-  hyphens: auto;
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow-wrap: break-word;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   max-height: 400px;
   overflow-y: auto;
   overflow-x: hidden;
-  text-align: justify;
-  width: 100%;
-  display: block;
-  box-sizing: border-box;
+  background: #fafafa;
+  border-radius: 0 0 8px 8px;
 }
 
-.transcription-text::-webkit-scrollbar {
-  width: 8px;
+.transcription-content::-webkit-scrollbar {
+  width: 6px;
 }
 
-.transcription-text::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
+.transcription-content::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.transcription-text::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+.transcription-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
 }
 
-.transcription-text::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+.transcription-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
 }
 
 /* Ajustes para mobile */
 @media (max-width: 768px) {
-  .transcription-text {
+  .transcription-content {
     font-size: 0.875rem;
-    line-height: 1.6;
-    padding: 12px;
-    max-height: 300px;
-    text-align: left;
+    line-height: 1.55;
+    padding: 16px 12px;
+    max-height: 280px;
+  }
+
+  .transcription-header .v-chip {
+    font-size: 0.75rem;
   }
 
   .audio-card .v-card {
-    padding: 12px !important;
-    width: 100%;
-    max-width: 100%;
+    padding: 10px !important;
   }
 
   .audio-card .v-avatar {
@@ -1110,38 +1117,19 @@ function dismissRecordingError() {
     min-width: 0;
     overflow: hidden;
   }
-
-  .audio-card .text-caption {
-    word-break: break-word;
-    overflow-wrap: anywhere;
-  }
 }
 
 /* Ajustes para telas muito pequenas */
 @media (max-width: 480px) {
-  .transcription-text {
-    font-size: 0.85rem;
+  .transcription-content {
+    font-size: 0.8125rem;
     line-height: 1.5;
-    padding: 10px;
+    padding: 12px 10px;
+    max-height: 240px;
   }
 
-  .audio-card .text-subtitle-2 {
-    font-size: 0.875rem !important;
-  }
-
-  .audio-card .text-caption {
+  .transcription-header .text-body-2 {
     font-size: 0.75rem !important;
   }
-}
-
-/* Garantir que o texto flua corretamente */
-.transcription-text p {
-  margin-bottom: 0.5em;
-  word-break: normal;
-  overflow-wrap: anywhere;
-}
-
-.transcription-text p:last-child {
-  margin-bottom: 0;
 }
 </style>
