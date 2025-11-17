@@ -42,6 +42,19 @@ function resolveMediaType(filePath: string, fileType: 'pdf' | 'image'): string {
 }
 
 function logRawAnthropicResponse(examId: string, response: any) {
+  // Usar /tmp em ambientes serverless (Vercel)
+  const isVercel = process.env.VERCEL === '1';
+
+  if (isVercel) {
+    // Em produção Vercel, apenas fazer log no console
+    console.log(`📝 Resposta da Anthropic para exame ${examId}:`, {
+      model: response.model,
+      usage: response.usage,
+      role: response.role,
+    });
+    return;
+  }
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const dir = path.join(process.cwd(), 'logs', 'anthropic');
   const filePath = path.join(dir, `${examId}-${timestamp}.json`);
@@ -123,18 +136,55 @@ export interface ExamAnalysisResult {
  * Analisa um exame em PDF ou imagem usando Claude AI
  */
 export async function analyzeExam(
-  filePath: string,
+  filePathOrUrl: string,
   fileType: 'pdf' | 'image'
 ): Promise<ExamAnalysisResult> {
   try {
-    console.log('📄 Analisando exame:', filePath);
+    console.log('📄 Analisando exame:', filePathOrUrl);
 
-    // Ler arquivo
-    const fileBuffer = fs.readFileSync(filePath);
+    // Ler arquivo (suporta path local ou URL do Vercel Blob)
+    let fileBuffer: Buffer;
+
+    if (filePathOrUrl.startsWith('http://') || filePathOrUrl.startsWith('https://')) {
+      // URL remota (Vercel Blob)
+      console.log('📥 Baixando arquivo de URL remota...');
+      const response = await fetch(filePathOrUrl);
+      if (!response.ok) {
+        throw new Error(`Falha ao baixar arquivo: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      fileBuffer = Buffer.from(arrayBuffer);
+    } else {
+      // Path local - resolver caminho relativo ou absoluto
+      let actualPath = filePathOrUrl;
+      
+      // Se começar com /uploads/, é relativo ao projeto
+      if (filePathOrUrl.startsWith('/uploads/')) {
+        actualPath = path.join(process.cwd(), filePathOrUrl);
+      }
+      // Se for caminho absoluto que não existe, tentar relativo ao projeto
+      else if (path.isAbsolute(filePathOrUrl) && !fs.existsSync(filePathOrUrl)) {
+        // Tentar como caminho relativo ao projeto
+        const relativePath = filePathOrUrl.replace(/^[A-Z]:\\/, '').replace(/^\\/, '');
+        actualPath = path.join(process.cwd(), relativePath);
+        
+        // Se ainda não existir, tentar com uploads/
+        if (!fs.existsSync(actualPath)) {
+          actualPath = path.join(process.cwd(), 'uploads', path.basename(filePathOrUrl));
+        }
+      }
+      
+      if (!fs.existsSync(actualPath)) {
+        throw new Error(`Arquivo não encontrado: ${filePathOrUrl} (tentou: ${actualPath})`);
+      }
+      
+      fileBuffer = fs.readFileSync(actualPath);
+    }
+
     const base64 = fileBuffer.toString('base64');
 
     // Determinar media type dinamicamente
-    const mediaType = resolveMediaType(filePath, fileType);
+    const mediaType = resolveMediaType(filePathOrUrl, fileType);
 
     // Prompt especializado para análise de exames
     const prompt = `Você é um especialista em análise de exames laboratoriais e está ajudando a Dra. Thayná Marra, farmacêutica especializada em Análise do Sangue Vivo.
@@ -208,7 +258,8 @@ Retorne um JSON estruturado com todas essas informações.
 
     // Registrar resposta crua para depuração
     try {
-      logRawAnthropicResponse(path.basename(filePath), response);
+      const examId = filePathOrUrl.includes('/') ? path.basename(filePathOrUrl) : filePathOrUrl;
+      logRawAnthropicResponse(examId, response);
     } catch (error) {
       console.error('Falha ao logar resposta da Anthropic:', error);
     }

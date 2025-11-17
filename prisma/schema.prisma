@@ -3,10 +3,13 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  previewFeatures = []
+  engineType = "binary"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -26,6 +29,7 @@ model User {
   // Relacionamentos
   consultations Consultation[]
   reports       Report[]
+  appointments  Appointment[]
 
   @@map("users")
 }
@@ -69,8 +73,58 @@ model Patient {
   consultations Consultation[]
   reports       Report[]
   exams         Exam[]
+  appointments  Appointment[]
 
   @@map("patients")
+}
+
+// ====================================
+// AGENDAMENTOS
+// ====================================
+
+model Appointment {
+  id        String   @id @default(cuid())
+  patientId String
+  userId    String
+
+  // Informações do Agendamento
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  duration    Int      // minutos
+
+  // Tipo e Status
+  type        String   @default("CONSULTATION") // CONSULTATION, EXAM, FOLLOWUP, OTHER
+  status      String   @default("SCHEDULED") // SCHEDULED, CONFIRMED, CANCELLED, COMPLETED, NO_SHOW
+
+  // Localização
+  location    String?  // Presencial ou link de videochamada
+  isOnline    Boolean  @default(false)
+
+  // Lembretes
+  reminderSent    Boolean  @default(false)
+  reminderSentAt  DateTime?
+
+  // Notas
+  notes           String?
+  cancellationReason String?
+
+  // Integração com Calendários Externos
+  googleEventId   String?  // ID do evento no Google Calendar
+  appleEventId    String?  // ID do evento no Apple Calendar
+  syncStatus      String   @default("PENDING") // PENDING, SYNCED, FAILED
+  lastSyncAt      DateTime?
+  syncError       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("appointments")
 }
 
 // ====================================
