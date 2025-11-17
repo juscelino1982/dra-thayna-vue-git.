@@ -31,6 +31,8 @@ const medicalInfoForm = ref({
   medicalHistory: '',
 })
 const savingMedicalInfo = ref(false)
+const showExamAnalysisModal = ref(false)
+const selectedExamAnalysis = ref<any | null>(null)
 
 let processingPollInterval: ReturnType<typeof setInterval> | null = null
 let processingElapsedInterval: ReturnType<typeof setInterval> | null = null
@@ -345,13 +347,28 @@ function openProcessingDialog(exam: any) {
       : 'Análise em andamento...'
   processingError.value = exam.processingError || null
   processingElapsed.value = 0
-  processingDialog.value = true
+}
 
-  if (exam.processingStatus === 'PROCESSING') {
-    startExamProcessingMonitor(exam.id, patient.value.id)
-  } else {
-    stopExamProcessingMonitor()
+function openExamAnalysisModal(exam: any) {
+  const parsedData = parseJsonField(exam.extractedData, {} as Record<string, any>)
+  const resumoClinico = parsedData.resumo_clinico || {}
+  
+  selectedExamAnalysis.value = {
+    examId: exam.id,
+    fileName: exam.fileName,
+    category: exam.category,
+    examDate: exam.examDate,
+    resumoClinico: resumoClinico.resumo_geral || resumoClinico.resumo || resumoClinico.status_geral || '',
+    interpretacaoClinica: resumoClinico.interpretacao_clinica || resumoClinico.interpretacao_geral || resumoClinico.interpretacao_achados || '',
+    correlacoesClinicas: resumoClinico.correlacoes_clinicas_possiveis || resumoClinico.correlacoes_clinicas || [],
+    recomendacoes: resumoClinico.recomendacoes || [],
   }
+  showExamAnalysisModal.value = true
+}
+
+function closeExamAnalysisModal() {
+  showExamAnalysisModal.value = false
+  selectedExamAnalysis.value = null
 }
 
 function openMedicalInfoDialog() {
@@ -752,9 +769,21 @@ function getExamActionLabel(status: string) {
                       color="primary-lighten-5"
                       class="pa-4 rounded-lg exam-card__summary mb-4"
                     >
-                      <div class="d-flex align-center mb-2">
-                        <v-icon icon="mdi-text-long" class="mr-2" color="primary-darken-1"></v-icon>
-                        <span class="text-subtitle-2 font-weight-medium">Resumo da IA</span>
+                      <div class="d-flex align-center justify-space-between mb-2">
+                        <div class="d-flex align-center">
+                          <v-icon icon="mdi-text-long" class="mr-2" color="primary-darken-1"></v-icon>
+                          <span class="text-subtitle-2 font-weight-medium">Resumo da IA</span>
+                        </div>
+                        <v-btn
+                          v-if="exam.parsedExtractedData?.resumo_clinico"
+                          size="small"
+                          variant="text"
+                          color="primary"
+                          prepend-icon="mdi-eye"
+                          @click="openExamAnalysisModal(exam)"
+                        >
+                          Ver Análise Completa
+                        </v-btn>
                       </div>
                       <p class="mb-3 text-body-2">{{ exam.aiSummary }}</p>
 
@@ -1019,6 +1048,137 @@ function getExamActionLabel(status: string) {
             @click="refreshProcessingExam"
           >
             Atualizar agora
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Modal de Análise Completa da IA -->
+    <v-dialog
+      v-model="showExamAnalysisModal"
+      max-width="900"
+      scrollable
+    >
+      <v-card v-if="selectedExamAnalysis">
+        <v-card-title class="d-flex align-center bg-primary text-white pa-4">
+          <v-icon icon="mdi-microscope" class="mr-3"></v-icon>
+          <div class="flex-grow-1">
+            <div class="text-h6">Análise Completa da IA</div>
+            <div class="text-caption">
+              {{ selectedExamAnalysis.fileName }}
+              <span v-if="selectedExamAnalysis.category" class="ml-2">
+                • {{ selectedExamAnalysis.category }}
+              </span>
+              <span v-if="selectedExamAnalysis.examDate" class="ml-2">
+                • {{ formatDate(selectedExamAnalysis.examDate) }}
+              </span>
+            </div>
+          </div>
+          <v-btn
+            icon
+            variant="text"
+            @click="closeExamAnalysisModal"
+            color="white"
+          >
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-6">
+          <!-- Resumo Clínico -->
+          <div v-if="selectedExamAnalysis.resumoClinico" class="mb-6">
+            <div class="d-flex align-center mb-3">
+              <v-icon icon="mdi-file-document-outline" class="mr-2" color="primary"></v-icon>
+              <h3 class="text-h6">Resumo Clínico</h3>
+            </div>
+            <v-sheet color="primary-lighten-5" class="pa-4 rounded-lg">
+              <p class="text-body-1" style="white-space: pre-wrap; line-height: 1.8;">
+                {{ selectedExamAnalysis.resumoClinico }}
+              </p>
+            </v-sheet>
+          </div>
+
+          <!-- Interpretação Clínica -->
+          <div v-if="selectedExamAnalysis.interpretacaoClinica" class="mb-6">
+            <div class="d-flex align-center mb-3">
+              <v-icon icon="mdi-brain" class="mr-2" color="primary"></v-icon>
+              <h3 class="text-h6">Interpretação Clínica</h3>
+            </div>
+            <v-sheet color="info-lighten-5" class="pa-4 rounded-lg">
+              <p class="text-body-1" style="white-space: pre-wrap; line-height: 1.8;">
+                {{ Array.isArray(selectedExamAnalysis.interpretacaoClinica) 
+                  ? selectedExamAnalysis.interpretacaoClinica.join('\n\n') 
+                  : selectedExamAnalysis.interpretacaoClinica }}
+              </p>
+            </v-sheet>
+          </div>
+
+          <!-- Correlações Clínicas Possíveis -->
+          <div v-if="selectedExamAnalysis.correlacoesClinicas && ensureArray(selectedExamAnalysis.correlacoesClinicas).length" class="mb-6">
+            <div class="d-flex align-center mb-3">
+              <v-icon icon="mdi-link-variant" class="mr-2" color="primary"></v-icon>
+              <h3 class="text-h6">Correlações Clínicas Possíveis</h3>
+            </div>
+            <v-list density="comfortable" class="bg-transparent">
+              <v-list-item
+                v-for="(correlacao, index) in ensureArray(selectedExamAnalysis.correlacoesClinicas)"
+                :key="index"
+                class="mb-2"
+              >
+                <template #prepend>
+                  <v-icon icon="mdi-arrow-right" color="primary" class="mr-3"></v-icon>
+                </template>
+                <v-list-item-title class="text-body-1">
+                  {{ typeof correlacao === 'string' ? correlacao : correlacao.descricao || correlacao.correlacao || JSON.stringify(correlacao) }}
+                </v-list-item-title>
+                <v-list-item-subtitle v-if="typeof correlacao === 'object' && correlacao.significado" class="text-caption">
+                  {{ correlacao.significado }}
+                </v-list-item-subtitle>
+              </v-list-item>
+            </v-list>
+          </div>
+
+          <!-- Recomendações -->
+          <div v-if="selectedExamAnalysis.recomendacoes && ensureArray(selectedExamAnalysis.recomendacoes).length" class="mb-6">
+            <div class="d-flex align-center mb-3">
+              <v-icon icon="mdi-lightbulb-on" class="mr-2" color="primary"></v-icon>
+              <h3 class="text-h6">Recomendações</h3>
+            </div>
+            <v-list density="comfortable" class="bg-transparent">
+              <v-list-item
+                v-for="(recomendacao, index) in ensureArray(selectedExamAnalysis.recomendacoes)"
+                :key="index"
+                class="mb-2"
+              >
+                <template #prepend>
+                  <v-icon icon="mdi-check-circle" color="success" class="mr-3"></v-icon>
+                </template>
+                <v-list-item-title class="text-body-1">
+                  {{ typeof recomendacao === 'string' ? recomendacao : recomendacao.recomendacao || recomendacao.descricao || JSON.stringify(recomendacao) }}
+                </v-list-item-title>
+                <v-list-item-subtitle v-if="typeof recomendacao === 'object' && recomendacao.detalhes" class="text-caption">
+                  {{ recomendacao.detalhes }}
+                </v-list-item-subtitle>
+              </v-list-item>
+            </v-list>
+          </div>
+
+          <v-alert
+            v-if="!selectedExamAnalysis.resumoClinico && !selectedExamAnalysis.interpretacaoClinica && (!selectedExamAnalysis.correlacoesClinicas || !ensureArray(selectedExamAnalysis.correlacoesClinicas).length) && (!selectedExamAnalysis.recomendacoes || !ensureArray(selectedExamAnalysis.recomendacoes).length)"
+            type="info"
+            variant="tonal"
+          >
+            Nenhuma informação de análise clínica disponível para este exame.
+          </v-alert>
+        </v-card-text>
+
+        <v-card-actions class="pa-4 bg-grey-lighten-4">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="primary"
+            @click="closeExamAnalysisModal"
+          >
+            Fechar
           </v-btn>
         </v-card-actions>
       </v-card>
