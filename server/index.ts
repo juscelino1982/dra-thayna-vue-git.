@@ -7,6 +7,7 @@ import examsRouter from './routes/exams'
 import consultationsRouter from './routes/consultations'
 import reportsRouter from './routes/reports'
 import dashboardRouter from './routes/dashboard'
+import appointmentsRouter from './routes/appointments'
 
 const app = express()
 const PORT = 3001
@@ -67,6 +68,7 @@ app.use('/api/patients', patientsRouter)
 app.use('/api/exams', examsRouter)
 app.use('/api/consultations', consultationsRouter)
 app.use('/api/reports', reportsRouter)
+app.use('/api/appointments', appointmentsRouter)
 
 // 404 Handler
 app.use((req, res) => {

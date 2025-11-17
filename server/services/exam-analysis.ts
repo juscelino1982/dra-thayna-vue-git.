@@ -136,18 +136,33 @@ export interface ExamAnalysisResult {
  * Analisa um exame em PDF ou imagem usando Claude AI
  */
 export async function analyzeExam(
-  filePath: string,
+  filePathOrUrl: string,
   fileType: 'pdf' | 'image'
 ): Promise<ExamAnalysisResult> {
   try {
-    console.log('📄 Analisando exame:', filePath);
+    console.log('📄 Analisando exame:', filePathOrUrl);
 
-    // Ler arquivo
-    const fileBuffer = fs.readFileSync(filePath);
+    // Ler arquivo (suporta path local ou URL do Vercel Blob)
+    let fileBuffer: Buffer;
+
+    if (filePathOrUrl.startsWith('http://') || filePathOrUrl.startsWith('https://')) {
+      // URL remota (Vercel Blob)
+      console.log('📥 Baixando arquivo de URL remota...');
+      const response = await fetch(filePathOrUrl);
+      if (!response.ok) {
+        throw new Error(`Falha ao baixar arquivo: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      fileBuffer = Buffer.from(arrayBuffer);
+    } else {
+      // Path local
+      fileBuffer = fs.readFileSync(filePathOrUrl);
+    }
+
     const base64 = fileBuffer.toString('base64');
 
     // Determinar media type dinamicamente
-    const mediaType = resolveMediaType(filePath, fileType);
+    const mediaType = resolveMediaType(filePathOrUrl, fileType);
 
     // Prompt especializado para análise de exames
     const prompt = `Você é um especialista em análise de exames laboratoriais e está ajudando a Dra. Thayná Marra, farmacêutica especializada em Análise do Sangue Vivo.
@@ -221,7 +236,8 @@ Retorne um JSON estruturado com todas essas informações.
 
     // Registrar resposta crua para depuração
     try {
-      logRawAnthropicResponse(path.basename(filePath), response);
+      const examId = filePathOrUrl.includes('/') ? path.basename(filePathOrUrl) : filePathOrUrl;
+      logRawAnthropicResponse(examId, response);
     } catch (error) {
       console.error('Falha ao logar resposta da Anthropic:', error);
     }

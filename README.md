@@ -21,6 +21,7 @@ Sistema de gestão de consultório médico especializado em Análise do Sangue V
 O Sistema Dra. Thayná Marra é uma plataforma completa de gestão de consultório médico que combina tecnologias web modernas com IA de ponta para fornecer:
 
 - Gestão completa de pacientes com conformidade LGPD
+- Sistema de agendamentos com integração Google Calendar e Apple Calendar
 - Rastreamento de consultas com transcrição de áudio
 - Análise automatizada de exames usando Claude AI Vision
 - Geração de relatórios médicos com IA
@@ -56,6 +57,11 @@ O Sistema Dra. Thayná Marra é uma plataforma completa de gestão de consultór
 ### Integrações IA
 - **Anthropic Claude** - Modelo `claude-sonnet-4-5-20250929`
 - **OpenAI Whisper** - Modelo `whisper-1`
+
+### Integrações Calendário
+- **Google Calendar API** - Sincronização bidirecional de agendamentos
+- **CalDAV (iCloud)** - Integração com Apple Calendar
+- **iCalendar (RFC 5545)** - Geração de arquivos .ICS
 
 ## Requisitos
 
@@ -241,13 +247,23 @@ dra-thayna-vue/
 - Conformidade LGPD: rastreamento de consentimento
 - Busca e filtros
 
-### 2. Sistema de Consultas
+### 2. Sistema de Agendamentos
+- Criar, editar e cancelar agendamentos
+- Visualizar agenda por dia, semana ou mês
+- Tipos: Consulta, Exame, Retorno, Outro
+- Status: Agendado, Confirmado, Concluído, Cancelado, Faltou
+- Sincronização automática com Google Calendar
+- Integração com Apple Calendar (CalDAV + .ICS)
+- Notificações e lembretes automáticos
+- Consultas online e presenciais
+
+### 3. Sistema de Consultas
 - Upload de áudio de consultas
 - Transcrição automática via Whisper AI
 - Status: agendada, em andamento, concluída, cancelada
 - Registro de queixa principal e sintomas
 
-### 3. Análise de Exames (IA)
+### 4. Análise de Exames (IA)
 - Upload de PDFs e imagens (até 50MB)
 - 12 categorias automáticas:
   1. Hemograma
@@ -267,7 +283,7 @@ dra-thayna-vue/
 - Detecção de valores anormais
 - Reprocessamento sob demanda
 
-### 4. Geração de Relatórios
+### 5. Geração de Relatórios
 - Relatórios médicos gerados por IA
 - Seções:
   - Análise microscópica (campo claro/escuro)
@@ -277,7 +293,7 @@ dra-thayna-vue/
 - Workflow: Rascunho → Revisão → Aprovado → Enviado
 - Exportação em PDF
 
-### 5. Chatbot
+### 6. Chatbot
 - Multiplataforma: WhatsApp, web, Instagram
 - Rastreamento de conversas
 - Suporte a botões, imagens e rich content
@@ -351,6 +367,8 @@ Para guias detalhados de deploy, consulte:
 
 - [QUICK-START.md](QUICK-START.md) - Setup rápido em 5 minutos
 - [README-BACKEND.md](README-BACKEND.md) - API e backend detalhados
+- [AGENDAMENTOS.md](AGENDAMENTOS.md) - Sistema de agendamentos e integração com calendários
+- [VERCEL-BLOB-STORAGE.md](VERCEL-BLOB-STORAGE.md) - **Upload de arquivos com Vercel Blob Storage**
 - [DEPLOY-VERCEL.md](DEPLOY-VERCEL.md) - Guia de deploy na Vercel
 - [DEPLOY-DATABASE.md](DEPLOY-DATABASE.md) - Setup de banco de dados
 - [MIGRACAO_COMPLETA.md](MIGRACAO_COMPLETA.md) - Histórico de migração React → Vue

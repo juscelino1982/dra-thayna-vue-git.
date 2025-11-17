@@ -4,6 +4,7 @@ import formidable from 'formidable'
 import fs from 'fs/promises'
 import path from 'path'
 import { analyzeExam } from '../services/exam-analysis.js'
+import { uploadFile, deleteFile, generateUniqueFilename } from '../services/file-storage.js'
 
 const router = Router()
 
@@ -107,20 +108,45 @@ router.post('/upload', async (req, res) => {
         const fileType = file.mimetype?.includes('pdf') ? 'pdf' : 'image'
         const fileName = file.originalFilename || 'exame.pdf'
 
+        console.log('[Upload Exame] Arquivo recebido:', {
+          name: fileName,
+          size: file.size,
+          mimetype: file.mimetype,
+          type: fileType,
+        })
+
+        // Ler o arquivo como buffer
+        const fileBuffer = await fs.readFile(file.filepath)
+
+        // Gerar nome único
+        const uniqueFilename = generateUniqueFilename(fileName)
+
+        // Upload para Vercel Blob ou sistema de arquivos local
+        const fileUrl = await uploadFile(fileBuffer, uniqueFilename, 'exams')
+
+        console.log('[Upload Exame] Arquivo enviado:', fileUrl)
+
         // Criar registro inicial do exame
         const exam = await prisma.exam.create({
           data: {
             patientId,
             fileName,
-            fileUrl: file.filepath,
+            fileUrl: fileUrl,
             fileType,
             fileSize: file.size,
             processingStatus: 'PROCESSING',
           },
         })
 
+        // Limpar arquivo temporário
+        try {
+          await fs.unlink(file.filepath)
+        } catch (unlinkError) {
+          console.warn('Não foi possível deletar arquivo temporário:', unlinkError)
+        }
+
         // Processar análise em background (async, não espera)
-        processExamAnalysis(exam.id, file.filepath, fileType as 'pdf' | 'image')
+        processExamAnalysis(exam.id, fileUrl, fileType as 'pdf' | 'image')
           .catch(error => console.error('Erro ao processar análise:', error))
 
         res.status(201).json({
@@ -301,7 +327,7 @@ router.delete('/:id', async (req, res) => {
     // Deletar arquivo físico se existir
     if (exam.fileUrl) {
       try {
-        await fs.unlink(exam.fileUrl)
+        await deleteFile(exam.fileUrl)
         console.log(`Arquivo deletado: ${exam.fileUrl}`)
       } catch (error: any) {
         console.error('Erro ao deletar arquivo físico:', error)

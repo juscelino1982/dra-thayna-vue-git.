@@ -4,6 +4,7 @@ import formidable from 'formidable'
 import fs from 'fs/promises'
 import path from 'path'
 import { transcribeAudio } from '../services/audio-transcription.js'
+import { uploadFile, deleteFile, generateUniqueFilename } from '../services/file-storage.js'
 
 const router = Router()
 
@@ -308,18 +309,36 @@ router.post('/:id/upload-audio', async (req, res) => {
           path: audioFile.filepath,
         })
 
+        // Ler o arquivo como buffer
+        const fileBuffer = await fs.readFile(audioFile.filepath)
+
+        // Gerar nome único
+        const uniqueFilename = generateUniqueFilename(audioFile.originalFilename || 'audio.webm')
+
+        // Upload para Vercel Blob ou sistema de arquivos local
+        const fileUrl = await uploadFile(fileBuffer, uniqueFilename, 'consultations')
+
+        // Criar registro no banco
         const audioRecord = await prisma.consultationAudio.create({
           data: {
             consultationId: id,
-            fileUrl: audioFile.filepath,
+            fileUrl: fileUrl,
             fileName: audioFile.originalFilename || path.basename(audioFile.filepath),
             fileSize: typeof audioFile.size === 'number' ? audioFile.size : 0,
             transcriptionStatus: 'PROCESSING',
           },
         })
 
+        // Limpar arquivo temporário
+        try {
+          await fs.unlink(audioFile.filepath)
+        } catch (unlinkError) {
+          console.warn('Não foi possível deletar arquivo temporário:', unlinkError)
+        }
+
         // Iniciar transcrição em background
-        processAudioTranscription(audioRecord.id, audioFile.filepath).catch((error) =>
+        // Para Vercel Blob, precisamos baixar o arquivo primeiro
+        processAudioTranscription(audioRecord.id, fileUrl).catch((error) =>
           console.error('Erro ao processar transcrição:', error)
         )
 
@@ -329,6 +348,7 @@ router.post('/:id/upload-audio', async (req, res) => {
           message: 'Upload realizado com sucesso. Transcrição enviada para a OpenAI.',
         })
       } catch (error: any) {
+        console.error('[Upload Áudio] Erro ao salvar áudio:', error)
         res.status(500).json({ error: 'Erro ao salvar áudio', message: error.message })
       }
     })
