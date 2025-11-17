@@ -1,21 +1,66 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 import NewPatientDialog from '@/components/NewPatientDialog.vue'
 
 const router = useRouter()
 const showNewPatientDialog = ref(false)
+const loading = ref(true)
 
 const stats = ref([
-  { title: 'Pacientes Cadastrados', value: 120, icon: 'mdi-account-group', color: 'primary' },
-  { title: 'Consultas Este Mês', value: 45, icon: 'mdi-calendar-check', color: 'success' },
-  { title: 'Relatórios Gerados', value: 38, icon: 'mdi-file-document', color: 'info' },
-  { title: 'Exames Analisados', value: 92, icon: 'mdi-flask', color: 'warning' },
+  { title: 'Pacientes Cadastrados', value: 0, icon: 'mdi-account-group', color: 'primary' },
+  { title: 'Consultas Este Mês', value: 0, icon: 'mdi-calendar-check', color: 'success' },
+  { title: 'Relatórios Gerados', value: 0, icon: 'mdi-file-document', color: 'info' },
+  { title: 'Exames Analisados', value: 0, icon: 'mdi-flask', color: 'warning' },
 ])
+
+async function loadStats() {
+  loading.value = true
+  try {
+    // Buscar pacientes (já vem com _count incluindo exams)
+    const patientsResponse = await axios.get('/api/patients')
+    const patientsCount = patientsResponse.data.length
+    stats.value[0].value = patientsCount
+
+    // Contar exames usando _count dos pacientes
+    let examsCount = 0
+    patientsResponse.data.forEach((patient: any) => {
+      if (patient._count && patient._count.exams) {
+        examsCount += patient._count.exams
+      }
+    })
+    stats.value[3].value = examsCount
+
+    // Buscar consultas deste mês
+    const consultationsResponse = await axios.get('/api/consultations')
+    const now = new Date()
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const consultationsThisMonth = consultationsResponse.data.filter((c: any) => {
+      const consultationDate = new Date(c.date)
+      return consultationDate >= firstDayOfMonth
+    })
+    stats.value[1].value = consultationsThisMonth.length
+
+    // Buscar relatórios
+    const reportsResponse = await axios.get('/api/reports')
+    const reportsCount = reportsResponse.data.length
+    stats.value[2].value = reportsCount
+  } catch (error) {
+    console.error('Erro ao carregar estatísticas:', error)
+  } finally {
+    loading.value = false
+  }
+}
 
 function handlePatientCreated(patient: any) {
   router.push(`/pacientes/${patient.id}`)
+  loadStats()
 }
+
+onMounted(() => {
+  loadStats()
+})
 </script>
 
 <template>
