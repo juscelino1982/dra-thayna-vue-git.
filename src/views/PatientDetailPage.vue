@@ -857,10 +857,151 @@ function getExamActionLabel(status: string) {
                       </v-table>
                     </div>
 
+                    <!-- Análise Clínica Completa -->
+                    <v-expansion-panels
+                      variant="accordion"
+                      class="exam-card__expansion mb-4"
+                      v-if="exam.parsedExtractedData?.resumo_clinico"
+                    >
+                      <v-expansion-panel>
+                        <v-expansion-panel-title class="font-weight-medium">
+                          <v-icon icon="mdi-clipboard-text-outline" class="mr-2" color="primary"></v-icon>
+                          Análise Clínica Completa
+                        </v-expansion-panel-title>
+                        <v-expansion-panel-text>
+                          <div class="pa-4">
+                            <!-- Status Geral -->
+                            <v-alert
+                              v-if="exam.parsedExtractedData.resumo_clinico.status_geral"
+                              type="info"
+                              variant="tonal"
+                              class="mb-4"
+                            >
+                              <div class="text-subtitle-2 font-weight-bold mb-1">Status Geral</div>
+                              <div>{{ exam.parsedExtractedData.resumo_clinico.status_geral }}</div>
+                            </v-alert>
+
+                            <!-- Principais Achados -->
+                            <div v-if="exam.parsedExtractedData.resumo_clinico.principais_achados?.length" class="mb-4">
+                              <div class="d-flex align-center mb-2">
+                                <v-icon icon="mdi-lightbulb-on" class="mr-2" color="warning"></v-icon>
+                                <span class="text-subtitle-2 font-weight-bold">Principais Achados</span>
+                              </div>
+                              <v-list density="compact" class="bg-transparent">
+                                <v-list-item
+                                  v-for="(achado, idx) in exam.parsedExtractedData.resumo_clinico.principais_achados"
+                                  :key="`achado-${idx}`"
+                                  class="px-0"
+                                >
+                                  <template #prepend>
+                                    <v-icon icon="mdi-circle-small" size="18" color="warning"></v-icon>
+                                  </template>
+                                  <v-list-item-title class="text-body-2">{{ achado }}</v-list-item-title>
+                                </v-list-item>
+                              </v-list>
+                            </div>
+
+                            <!-- Interpretação Clínica -->
+                            <div v-if="exam.parsedExtractedData.resumo_clinico.interpretacao_clinica" class="mb-4">
+                              <div class="d-flex align-center mb-3">
+                                <v-icon icon="mdi-microscope" class="mr-2" color="primary"></v-icon>
+                                <span class="text-subtitle-2 font-weight-bold">Interpretação Clínica</span>
+                              </div>
+
+                              <v-card
+                                v-for="(interpretacao, key) in exam.parsedExtractedData.resumo_clinico.interpretacao_clinica"
+                                :key="key"
+                                variant="outlined"
+                                class="mb-2"
+                              >
+                                <v-card-text>
+                                  <div class="text-subtitle-2 font-weight-medium text-primary mb-1">
+                                    {{ key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+                                  </div>
+                                  <div class="text-body-2">{{ interpretacao }}</div>
+                                </v-card-text>
+                              </v-card>
+                            </div>
+
+                            <!-- Correlações Clínicas -->
+                            <div v-if="exam.parsedExtractedData.resumo_clinico.correlacoes_clinicas_possiveis?.length" class="mb-4">
+                              <div class="d-flex align-center mb-2">
+                                <v-icon icon="mdi-link-variant" class="mr-2" color="info"></v-icon>
+                                <span class="text-subtitle-2 font-weight-bold">Correlações Clínicas Possíveis</span>
+                              </div>
+                              <v-list density="compact" class="bg-transparent">
+                                <v-list-item
+                                  v-for="(correlacao, idx) in exam.parsedExtractedData.resumo_clinico.correlacoes_clinicas_possiveis"
+                                  :key="`correlacao-${idx}`"
+                                  class="px-0"
+                                >
+                                  <template #prepend>
+                                    <v-icon icon="mdi-arrow-right-circle" size="18" color="info"></v-icon>
+                                  </template>
+                                  <v-list-item-title class="text-body-2">{{ correlacao }}</v-list-item-title>
+                                </v-list-item>
+                              </v-list>
+                            </div>
+
+                            <!-- Recomendações Clínicas -->
+                            <div v-if="exam.parsedExtractedData.resumo_clinico.recomendacoes?.length" class="mb-4">
+                              <div class="d-flex align-center mb-2">
+                                <v-icon icon="mdi-clipboard-check" class="mr-2" color="success"></v-icon>
+                                <span class="text-subtitle-2 font-weight-bold">Recomendações</span>
+                              </div>
+                              <v-list density="compact" class="bg-transparent">
+                                <v-list-item
+                                  v-for="(recomendacao, idx) in exam.parsedExtractedData.resumo_clinico.recomendacoes"
+                                  :key="`recomendacao-${idx}`"
+                                  class="px-0"
+                                >
+                                  <template #prepend>
+                                    <v-icon icon="mdi-check-circle" size="18" color="success"></v-icon>
+                                  </template>
+                                  <v-list-item-title class="text-body-2">{{ recomendacao }}</v-list-item-title>
+                                </v-list-item>
+                              </v-list>
+                            </div>
+                          </div>
+                        </v-expansion-panel-text>
+                      </v-expansion-panel>
+                    </v-expansion-panels>
+
+                    <!-- Informações Técnicas do Laboratório -->
+                    <v-expansion-panels
+                      variant="accordion"
+                      class="exam-card__expansion mb-4"
+                      v-if="exam.parsedExtractedData?.informacoes_tecnicas"
+                    >
+                      <v-expansion-panel>
+                        <v-expansion-panel-title class="font-weight-medium">
+                          <v-icon icon="mdi-office-building" class="mr-2" color="grey-darken-1"></v-icon>
+                          Informações Técnicas do Laboratório
+                        </v-expansion-panel-title>
+                        <v-expansion-panel-text>
+                          <v-list density="compact" class="bg-transparent">
+                            <v-list-item
+                              v-for="(valor, chave) in exam.parsedExtractedData.informacoes_tecnicas"
+                              :key="chave"
+                              class="px-0"
+                            >
+                              <v-list-item-title class="text-caption text-grey-darken-1">
+                                {{ chave.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+                              </v-list-item-title>
+                              <v-list-item-subtitle class="text-body-2 mt-1">
+                                {{ valor }}
+                              </v-list-item-subtitle>
+                            </v-list-item>
+                          </v-list>
+                        </v-expansion-panel-text>
+                      </v-expansion-panel>
+                    </v-expansion-panels>
+
+                    <!-- Dados Brutos (fallback para quando não há resumo_clinico) -->
                     <v-expansion-panels
                       variant="accordion"
                       class="exam-card__expansion"
-                      v-if="Object.keys(exam.parsedExtractedData || {}).length"
+                      v-if="Object.keys(exam.parsedExtractedData || {}).length && !exam.parsedExtractedData?.resumo_clinico"
                     >
                       <v-expansion-panel>
                         <v-expansion-panel-title>
