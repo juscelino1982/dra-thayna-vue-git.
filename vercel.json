@@ -3,6 +3,9 @@
   "buildCommand": "pnpm run build",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "outputDirectory": "dist",
+  "env": {
+    "NODE_VERSION": "20"
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
