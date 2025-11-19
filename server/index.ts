@@ -8,7 +8,7 @@ import consultationsRouter from './routes/consultations'
 import reportsRouter from './routes/reports'
 import dashboardRouter from './routes/dashboard'
 import appointmentsRouter from './routes/appointments'
-import calendarRouter from './routes/calendar'
+// import calendarRouter from './routes/calendar' // Temporariamente desabilitado
 import { ensureDefaultUser } from './utils/ensure-default-user'
 
 const app = express()
@@ -71,7 +71,7 @@ app.use('/api/exams', examsRouter)
 app.use('/api/consultations', consultationsRouter)
 app.use('/api/reports', reportsRouter)
 app.use('/api/appointments', appointmentsRouter)
-app.use('/api/calendar', calendarRouter)
+// app.use('/api/calendar', calendarRouter) // Temporariamente desabilitado
 
 // 404 Handler
 app.use((req, res) => {
