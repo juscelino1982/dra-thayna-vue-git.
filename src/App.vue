@@ -20,7 +20,7 @@ const drawer = ref(true)
         <v-list-item
           prepend-icon="mdi-home"
           title="Início"
-          to="/"
+          to="/home"
         ></v-list-item>
         <v-list-item
           prepend-icon="mdi-account-group"

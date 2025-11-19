@@ -155,8 +155,30 @@ export async function analyzeExam(
       const arrayBuffer = await response.arrayBuffer();
       fileBuffer = Buffer.from(arrayBuffer);
     } else {
-      // Path local
-      fileBuffer = fs.readFileSync(filePathOrUrl);
+      // Path local - resolver caminho relativo ou absoluto
+      let actualPath = filePathOrUrl;
+      
+      // Se começar com /uploads/, é relativo ao projeto
+      if (filePathOrUrl.startsWith('/uploads/')) {
+        actualPath = path.join(process.cwd(), filePathOrUrl);
+      }
+      // Se for caminho absoluto que não existe, tentar relativo ao projeto
+      else if (path.isAbsolute(filePathOrUrl) && !fs.existsSync(filePathOrUrl)) {
+        // Tentar como caminho relativo ao projeto
+        const relativePath = filePathOrUrl.replace(/^[A-Z]:\\/, '').replace(/^\\/, '');
+        actualPath = path.join(process.cwd(), relativePath);
+        
+        // Se ainda não existir, tentar com uploads/
+        if (!fs.existsSync(actualPath)) {
+          actualPath = path.join(process.cwd(), 'uploads', path.basename(filePathOrUrl));
+        }
+      }
+      
+      if (!fs.existsSync(actualPath)) {
+        throw new Error(`Arquivo não encontrado: ${filePathOrUrl} (tentou: ${actualPath})`);
+      }
+      
+      fileBuffer = fs.readFileSync(actualPath);
     }
 
     const base64 = fileBuffer.toString('base64');

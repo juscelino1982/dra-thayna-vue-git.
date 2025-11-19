@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import NewPatientDialog from '../components/NewPatientDialog.vue'
+import NewPatientDialog from '@/components/NewPatientDialog.vue'
 
 const router = useRouter()
 const showNewPatientDialog = ref(false)
@@ -15,22 +15,39 @@ const stats = ref([
   { title: 'Exames Analisados', value: 0, icon: 'mdi-flask', color: 'warning' },
 ])
 
-onMounted(() => {
-  fetchStats()
-})
-
-async function fetchStats() {
+async function loadStats() {
   loading.value = true
   try {
-    const response = await axios.get('/api/dashboard/stats')
-    const data = response.data
+    // Buscar pacientes (já vem com _count incluindo exams)
+    const patientsResponse = await axios.get('/api/patients')
+    const patientsCount = patientsResponse.data.length
+    stats.value[0].value = patientsCount
 
-    stats.value[0].value = data.totalPatients
-    stats.value[1].value = data.consultationsThisMonth
-    stats.value[2].value = data.reportsGenerated
-    stats.value[3].value = data.examsAnalyzed
+    // Contar exames usando _count dos pacientes
+    let examsCount = 0
+    patientsResponse.data.forEach((patient: any) => {
+      if (patient._count && patient._count.exams) {
+        examsCount += patient._count.exams
+      }
+    })
+    stats.value[3].value = examsCount
+
+    // Buscar consultas deste mês
+    const consultationsResponse = await axios.get('/api/consultations')
+    const now = new Date()
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const consultationsThisMonth = consultationsResponse.data.filter((c: any) => {
+      const consultationDate = new Date(c.date)
+      return consultationDate >= firstDayOfMonth
+    })
+    stats.value[1].value = consultationsThisMonth.length
+
+    // Buscar relatórios
+    const reportsResponse = await axios.get('/api/reports')
+    const reportsCount = reportsResponse.data.length
+    stats.value[2].value = reportsCount
   } catch (error) {
-    console.error('Erro ao buscar estatísticas:', error)
+    console.error('Erro ao carregar estatísticas:', error)
   } finally {
     loading.value = false
   }
@@ -38,8 +55,12 @@ async function fetchStats() {
 
 function handlePatientCreated(patient: any) {
   router.push(`/pacientes/${patient.id}`)
-  fetchStats() // Atualizar estatísticas após criar paciente
+  loadStats()
 }
+
+onMounted(() => {
+  loadStats()
+})
 </script>
 
 <template>
@@ -65,14 +86,7 @@ function handlePatientCreated(patient: any) {
       >
         <v-card :color="stat.color" variant="tonal" class="pa-4" elevation="2">
           <v-card-text>
-            <div v-if="loading" class="d-flex align-center justify-space-between">
-              <div>
-                <v-skeleton-loader type="heading" width="80"></v-skeleton-loader>
-                <v-skeleton-loader type="text" width="120" class="mt-1"></v-skeleton-loader>
-              </div>
-              <v-skeleton-loader type="avatar" width="48" height="48"></v-skeleton-loader>
-            </div>
-            <div v-else class="d-flex align-center justify-space-between">
+            <div class="d-flex align-center justify-space-between">
               <div>
                 <div class="text-h4 font-weight-bold">{{ stat.value }}</div>
                 <div class="text-body-2 mt-1">{{ stat.title }}</div>
